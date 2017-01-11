@@ -5,6 +5,7 @@
 typedef struct Node
 {	
 	char d;
+	char *arr;
 	struct Node* next;
 } node;
 
@@ -21,7 +22,6 @@ void insertChar(char d,list* l){
 
 	new->d = d;
 	new->next = NULL;
-
 	if(l->head!=NULL){
 		l->last->next = new;
 		l->last = new;
