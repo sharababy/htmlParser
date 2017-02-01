@@ -1,6 +1,5 @@
-#include <stdio.h>
 #include <stdlib.h>
-
+#include <stdbool.h>
 
 typedef struct Node
 {	
@@ -36,4 +35,21 @@ void insertChar(char d,list* l){
 
 }
 
+bool listCompare(list l1 , list l2){
+
+	bool same = false;
+	node* n1 = l1.head;
+	node* n2 = l2.head;
+
+ 	while(n1 != NULL && n2!= NULL){
+		if(n1->d != n2->d){
+			same = false;
+			break;
+		}
+		n1 = n1->next;
+		n2 = n2->next;
+		same = true;
+	}
+	return same;
+}
 
