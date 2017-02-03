@@ -27,7 +27,7 @@ typedef struct TagType{
 	struct TagType *nextTag;
 	struct TagType *parentTag;
 	struct TagType *childTag;
-	struct Tagtype *previousTag;	
+	struct TagType *previousTag;	
 
 	bool closed;
 } tagType;
@@ -37,8 +37,8 @@ typedef struct TagType{
 typedef struct TagList{
 	int length;
 
-	tagType* headTag;
-	tagType* lastTag;
+	struct TagType* headTag;
+	struct TagType* lastTag;
 
 
 } tagList;

@@ -3,7 +3,6 @@
 #include <string.h>
 #include <ctype.h>
 #include "htmldatatypes.c"
-#include "htmltagtree.c"
 #include <stdbool.h>
 
 int debug;
@@ -11,7 +10,7 @@ tagList mainList;
 
 
 size_t angularFind(FILE* fp);
-tagType readTag(FILE* fp);
+tagType* readTag(FILE* fp);
 // list readAttr(FILE* fp, FILE* data);
 // void printTag(char* p,list tag,char* s);
 void skipTill(char till , FILE* fp);
@@ -22,15 +21,20 @@ void skipTill(char till , FILE* fp);
 // void reachQuotes(FILE* fp);
 void startParse(FILE* fp , FILE* data);
 void saveTill(char stopChar , list buffer,FILE* fp);
-void printTagtoFile(tagType tag,FILE* data);
+void printTagToFile(tagType tag,FILE* data);
 
-bool checkList(tagType newtag ,tagList mainList);
+bool checkList(tagType newTag ,tagList mainList);
 void insertoList(tagType *newTag ,tagList *mainList);
 bool checkAndCloseTag(tagType *newTag,tagList *mainList);
 
-tagType getParentTag(tagList mainList);
+tagType* getParentTag(tagList* mainList);
 void setChildTag(tagType* thisChild , tagType* forThisParent);
-void removeBackSlach(tagType* newTag);
+bool checkBackSlash(tagType* newTag);
+
+void printHtmlTree(tagList mainList,FILE* data);
+int heightOfTag(tagType* tag);
+void correctTagList(tagList *mainList);
+
 
 size_t angularFind(FILE* fp){
 	
@@ -53,10 +57,10 @@ size_t angularFind(FILE* fp){
 
 
 
-tagType readTag(FILE* fp){
+tagType* readTag(FILE* fp){
 
 	char brack;
-	tagType *newTag = (*tagType)malloc(sizeof(tagType));
+	tagType *newTag = (tagType*)malloc(sizeof(tagType));
 	
 	newTag->name.last = newTag->name.head = NULL;
 
@@ -79,30 +83,57 @@ tagType readTag(FILE* fp){
 			insertChar(brack,&newTag->name);
 		}
 	}
-
-	removeBackSlach(newTag);
-
-	bool tagExists = checkList(newTag , mainList);
-
-
-	if( checkAndCloseTag(newTag,&mainList) == true ){
-		
-	}else{
+	
+	if(checkBackSlash(newTag) == false){
 		insertoList(newTag , &mainList);
 	}
-
+	correctTagList(&mainList);
 	return newTag;
 }
 
 
-void removeBackSlach(tagType* newTag){
+void correctTagList(tagList *mainList){
 
+	tagType *currentTag = mainList->headTag;
+	tagType *tempParent,*tempChild;
+	
+	while(currentTag!=NULL){
+		tempParent = currentTag->parentTag;
+		if (tempParent!=NULL)
+		{
+			if (tempParent->closed == true && currentTag->closed == false)
+			{
+				currentTag->closed = true;
+				tempChild = currentTag->childTag;
+				while(tempChild!=NULL){
+					if( tempChild->parentTag == currentTag )
+					{
+						tempChild->parentTag = tempParent;
+					}
+					else{
+						break;
+					}
+					tempChild = tempChild->nextTag;
+				}
+			}
+		}
+		currentTag = currentTag->nextTag;
+
+	}
+
+}
+
+bool checkBackSlash(tagType* newTag){
+	bool closed=false;
 	if(newTag->name.head)
 		if (newTag->name.head->d == '/')
 		{
 			newTag->name.head = newTag->name.head->next;
+			newTag->name.length--;
 
+			closed = checkAndCloseTag(newTag,&mainList);
 		}
+	return closed;
 }
 
 // list readAttr(FILE* fp ,FILE* data){
@@ -146,24 +177,24 @@ void removeBackSlach(tagType* newTag){
 // 	return attr;
 // }
 
-// void printTag(char* p,list tag,char* s){
-// 	int i=0;
-// 	while(p[i]!=';'){
-// 		printf("%c",p[i] );
-// 		i++;
-// 	}
-// 	i=0;
-// 	node *n = tag.head;
-// 	for(i=0;i<tag.length;i++){
-// 		printf("%c",n->d);
-// 		n = n->next;
-// 	}
-// 	i=0;
-// 	while(s[i]!=';'){
-// 		printf("%c",s[i] );
-// 		i++;
-// 	}
-// }
+void printTag(char* p,list tag,char* s){
+	int i=0;
+	while(p[i]!=';'){
+		printf("%c",p[i] );
+		i++;
+	}
+	i=0;
+	node *n = tag.head;
+	for(i=0;i<tag.length;i++){
+		printf("%c",n->d);
+		n = n->next;
+	}
+	i=0;
+	while(s[i]!=';'){
+		printf("%c",s[i] );
+		i++;
+	}
+}
 
 void skipTill(char till , FILE* fp){
 
@@ -255,21 +286,21 @@ void skipTill(char till , FILE* fp){
 
 
 
-// int listcmp(char l1[],list l2,int len){
+int listcmp(char l1[],list l2,int len){
 
-// 	int i=0,flag=0;
+	int i=0,flag=0;
 
-// 	node* n = l2.head;
+	node* n = l2.head;
 
-// 	while(n != NULL && i<len){
-// 		if(l1[i]!=n->d){
-// 			flag=1;
-// 		}
-// 		i++;
-// 		n = n->next;
-// 	}
-// 	return flag;
-// }
+	while(n != NULL && i<len){
+		if(l1[i]!=n->d){
+			flag=1;
+		}
+		i++;
+		n = n->next;
+	}
+	return flag;
+}
 
 
 // void reachQuotes(FILE* fp){
@@ -295,7 +326,7 @@ void skipTill(char till , FILE* fp){
 // }
 
 
-bool checkList(tagType newtag ,tagList mainList){
+bool checkList(tagType newTag ,tagList mainList){
 
 	// returns true if tag exists
 
@@ -307,7 +338,7 @@ bool checkList(tagType newtag ,tagList mainList){
 
 	while(currentTag!=NULL){
 
-		if( listCompare(currentTag.name , newTag.name) == true){
+		if( listCompare(currentTag->name , newTag.name) == true){
 			exists = true;
 			break;
 		}
@@ -319,10 +350,11 @@ bool checkList(tagType newtag ,tagList mainList){
 }
 bool checkAndCloseTag(tagType *newTag,tagList *mainList){
 
+
 	bool closed = false;
 	tagType* currentTag;
 
-	currentTag = mainList->headTag;
+	currentTag = mainList->lastTag;
 
 	while(currentTag!=NULL){
 
@@ -331,7 +363,7 @@ bool checkAndCloseTag(tagType *newTag,tagList *mainList){
 			closed = true;
 			break;
 		}
-		currentTag = currentTag->nextTag;
+		currentTag = currentTag->previousTag;
 
 	}
 
@@ -342,32 +374,45 @@ bool checkAndCloseTag(tagType *newTag,tagList *mainList){
 
 void insertoList(tagType *newTag ,tagList *mainList){
 
-	mainList->lastTag->nextTag = newTag;
 
-	newTag->previousTag = mainList->lastTag;
+	if(mainList->lastTag != NULL){
 
-	newTag->parentTag = getParentTag(mainList);
+		newTag->parentTag = getParentTag(mainList);
 
-	setChildTag(newTag , newTag->parentTag);
+		mainList->lastTag->nextTag = newTag;
+		(newTag->previousTag) = (mainList->lastTag);
+		mainList->lastTag = newTag;
+		setChildTag(newTag , newTag->parentTag);
+		
+	}
+	else{
+		newTag->previousTag = NULL;
+		newTag->parentTag = NULL;
+		mainList->lastTag = mainList->headTag = newTag;
+	}
 
 
 
 }
 
 
-tagType getParentTag(tagList mainList){
+tagType* getParentTag(tagList* mainList){
 
 	tagType *currentTag;
 
-	currentTag = mainList->headTag;
+	currentTag = mainList->lastTag;
 
 	while(currentTag->closed==true && currentTag!=NULL){
 
-			currentTag = currentTag->nextTag;
+		if (currentTag->previousTag ==NULL)
+		{
+			break;
+		}
+			currentTag = currentTag->previousTag;
 
 		}
 
-	return currentTag;
+	return (currentTag);
 
 }
 
@@ -394,17 +439,41 @@ void saveTill(char stopChar , list buffer , FILE* fp){
 }
 
 
-void printTagtoFile(tagType tag,FILE* data){
+void printTagToFile(tagType tag,FILE* data){
+	
+
 	int i=0;
 	
-	node *n = buffer.name.head;
-			
-	for(i=0;i<buffer.name.length;i++){
+
+	node *n = tag.name.head;
+	for(i=0;i<tag.name.length;i++){
 		fprintf(data,"%c",n->d);
 		n = n->next;
+
 	}
-	fprintf(data, "\n" );
+	// 	fprintf(data, " ");
+	// if (tag.parentTag!=NULL)
+	// 	{
+	// 		n = tag.parentTag->name.head;
+	// 		for(i=0;i<tag.parentTag->name.length;i++){
+	// 			fprintf(data,"%c",n->d);
+	// 			n = n->next;
+	// 		}		
+	// 	}	
+	// 	fprintf(data, " ");
+	// 	if (tag.childTag!=NULL)
+	// 	{
+	// 		n = tag.childTag->name.head;
+	// 		for(i=0;i<tag.childTag->name.length;i++){
+	// 			fprintf(data,"%c",n->d);
+	// 			n = n->next;
+	// 		}		
+	// 	}	
 	
+	fprintf(data, "\n");
+	//fprintf(data, ",%s\n",tag.closed ? "true" : "false" );
+	
+
 }
 
 
@@ -413,19 +482,72 @@ void startParse(FILE* fp ,FILE* data){
 
 		debug = 0;
 
-		tagType buffer;
-		buffer.closed = false;
+		tagType *buffer = (tagType*)malloc(sizeof(tagType));
+		buffer->closed = false;
 		int i=0;
+
 		while(angularFind(fp)){
 
+
 			buffer = readTag(fp); 
-				
-			printTagtoFile(buffer,data);	
 			
+
+			//printTagToFile(*buffer,data);	
+
 			// to print all tag names uncomment here
-			//printTag( " ;",readTag(fp)," <--Tag\n\n ;" );
-			
+			//printTag( " ;",buffer->name," <--Tag\n\n ;" );
+
 		}
+
+		printHtmlTree(mainList,data);
 }
 
 
+int heightOfTag(tagType* tag){
+
+
+	tagType *currentTag = tag;
+
+	int height=0;
+
+	while(currentTag->parentTag!=NULL){
+		height++;
+		currentTag = currentTag->parentTag;
+
+	}
+
+
+	return height;
+
+					
+
+}
+
+
+void printHtmlTree(tagList mainList , FILE* data){
+
+	tagType *currentTag = mainList.headTag;
+
+	int distance,count;
+
+	while(currentTag!=NULL){
+
+		distance = heightOfTag(currentTag);
+
+		for (int count = 0; count < distance; ++count)
+		{
+			fprintf(data,"\t");
+		}
+		printTagToFile(*currentTag , data);
+		// printTag(";",currentTag->name,";");
+		// if(currentTag->parentTag != NULL){
+		// 	printTag("-->;",currentTag->parentTag->name,"\n;");
+		// }
+
+		currentTag = currentTag->nextTag;
+	}
+}
+
+
+
+// if same names are given it is unable to from a proper tree
