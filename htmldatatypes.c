@@ -24,6 +24,8 @@ typedef struct TagType{
 	dystring content;
 	attr *attribute;
 
+	int id;
+
 	struct TagType *nextTag;
 	struct TagType *parentTag;
 	struct TagType *childTag;
@@ -36,7 +38,8 @@ typedef struct TagType{
 
 typedef struct TagList{
 	int length;
-
+	
+	
 	struct TagType* headTag;
 	struct TagType* lastTag;
 

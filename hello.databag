@@ -1,11 +1,8 @@
-html
-	head
-		title
-		title
-	body
-		diva
-			divb
-				divc
-					divd
-						dive
-							div
+html 1 
+	head 2 html
+		title 3 head
+			body 4 title
+				div 5 body
+					div 6 div
+						div 7 div
+							nav 8 div
