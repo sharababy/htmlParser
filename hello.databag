@@ -1,8 +1,10 @@
-html 1 
-	head 2 html
-		title 3 head
-			body 4 title
-				div 5 body
-					div 6 div
-						div 7 div
-							nav 8 div
+html 1
+	head 2
+		title 3
+		link 4
+		link 5
+		link 6
+		body 7
+			div 8
+		div 9
+			div 10

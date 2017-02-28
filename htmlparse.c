@@ -36,6 +36,7 @@ int heightOfTag(tagType* tag);
 void correctTagList(tagList *mainList);
 
 void closeThis(int lastOpen);
+int checkLastOpen(tagType newTag ,tagList mainList);
 
 
 size_t angularFind(FILE* fp){
@@ -85,10 +86,11 @@ tagType* readTag(FILE* fp){
 		}
 	}
 	
+
 	if(checkBackSlash(newTag) == false){
 		insertoList(newTag , &mainList);
 	}
-	//correctTagList(&mainList);
+	
 	return newTag;
 }
 
@@ -145,9 +147,10 @@ bool checkBackSlash(tagType* newTag){
 			newTag->name.length--;
 			closed=true;
 			//closed = checkAndCloseTag(newTag,&mainList);
-			lastOpen = checkList(*newTag,mainList);
+			lastOpen = checkLastOpen(*newTag,mainList);
+			printf("%d\n",lastOpen);
 			closeThis(lastOpen);
-
+			correctTagList(&mainList);
 		}
 	return closed;
 }
@@ -358,6 +361,28 @@ void closeThis(int lastOpen){
 
 }
 
+int checkLastOpen(tagType newTag ,tagList mainList){
+
+	// returns true if tag exists and is open
+	int exists = 0;
+
+	tagType* currentTag;
+
+	currentTag = mainList.lastTag;
+
+	while(currentTag!=NULL){
+
+		if( listCompare(currentTag->name , newTag.name) == true && currentTag->closed==false){
+			exists = currentTag->id;
+			break;
+		}
+		currentTag = currentTag->previousTag;
+
+	}
+
+	return exists;
+}
+
 int checkList(tagType newTag ,tagList mainList){
 
 	// returns true if tag exists
@@ -366,7 +391,7 @@ int checkList(tagType newTag ,tagList mainList){
 
 	tagType* currentTag;
 
-	currentTag = mainList.headTag;
+	currentTag = mainList.lastTag;
 
 	while(currentTag!=NULL){
 
@@ -374,7 +399,7 @@ int checkList(tagType newTag ,tagList mainList){
 			exists = currentTag->id;
 			break;
 		}
-		currentTag = currentTag->nextTag;
+		currentTag = currentTag->previousTag;
 
 	}
 
@@ -395,7 +420,7 @@ bool checkAndCloseTag(tagType *newTag,tagList *mainList){
 		if( listCompare(currentTag->name,newTag->name)==true){
 			currentTag->closed = true;
 			closed = true;
-			workingTag = currentTag->parentTag;
+			//workingTag = currentTag->parentTag;
 			break;
 		}
 		currentTag = currentTag->previousTag;
@@ -414,19 +439,22 @@ void insertoList(tagType *newTag ,tagList *mainList){
 
 	if(mainList->lastTag != NULL){
 
-		//newTag->parentTag = getParentTag(mainList);		
-		newTag->parentTag = workingTag;
+		newTag->parentTag = getParentTag(mainList);		
+		//newTag->parentTag = workingTag;
 		mainList->lastTag->nextTag = newTag;
 		(newTag->previousTag) = (mainList->lastTag);
 		mainList->lastTag = newTag;
-		setChildTag(newTag , newTag->parentTag);
-		workingTag = newTag;
+		if (newTag->parentTag != NULL)
+		{
+			setChildTag(newTag , newTag->parentTag);
+		}
+		//workingTag = newTag;
 	}
 	else{
 		newTag->previousTag = NULL;
 		newTag->parentTag = NULL;
 		mainList->lastTag = mainList->headTag = newTag;
-		workingTag = newTag;
+		//workingTag = newTag;
 	}
 
 	mainList->length++;
@@ -440,16 +468,16 @@ tagType* getParentTag(tagList* mainList){
 
 	currentTag = mainList->lastTag;
 	
-	while(currentTag->closed==true && currentTag!=NULL){
+	while(currentTag!= NULL){
 
-			if (currentTag->previousTag ==NULL)
+			if (currentTag->closed==false)
 			{
 				break;
 			}
 			
 			currentTag = currentTag->previousTag;
 		}
-
+	
 	return (currentTag);
 
 }
@@ -489,18 +517,18 @@ void printTagToFile(tagType tag,FILE* data){
 		n = n->next;
 
 	}
-	fprintf(data," %d",tag.id);
+	 fprintf(data," %d",tag.id);
 	
 
-	fprintf(data, " ");
-	if (tag.parentTag!=NULL)
-		{
-			n = tag.parentTag->name.head;
-			for(i=0;i<tag.parentTag->name.length;i++){
-				fprintf(data,"%c",n->d);
-				n = n->next;
-			}		
-		}	
+	// fprintf(data, " ");
+	// if (tag.parentTag!=NULL)
+	// 	{
+	// 		n = tag.parentTag->name.head;
+	// 		for(i=0;i<tag.parentTag->name.length;i++){
+	// 			fprintf(data,"%c",n->d);
+	// 			n = n->next;
+	// 		}		
+	// 	}	
 	// 	fprintf(data, " ");
 	// 	if (tag.childTag!=NULL)
 	// 	{
