@@ -38,6 +38,8 @@ void correctTagList(tagList *mainList);
 void closeThis(int lastOpen);
 int checkLastOpen(tagType newTag ,tagList mainList);
 
+void checkIfSingleTag(tagType* newTag);
+
 
 size_t angularFind(FILE* fp){
 	
@@ -57,6 +59,8 @@ size_t angularFind(FILE* fp){
 
 	return n;
 }
+
+
 
 
 
@@ -121,9 +125,7 @@ void correctTagList(tagList *mainList){
 			}
 		}
 		currentTag = currentTag->previousTag;
-
 	}
-
 }
 //new ->
 // bool checkBackSlash(tagType* newTag){
@@ -148,9 +150,7 @@ bool checkBackSlash(tagType* newTag){
 			closed=true;
 			//closed = checkAndCloseTag(newTag,&mainList);
 			lastOpen = checkLastOpen(*newTag,mainList);
-			printf("%d\n",lastOpen);
 			closeThis(lastOpen);
-			correctTagList(&mainList);
 		}
 	return closed;
 }
@@ -311,12 +311,19 @@ int listcmp(char l1[],list l2,int len){
 
 	node* n = l2.head;
 
-	while(n != NULL && i<len){
-		if(l1[i]!=n->d){
-			flag=1;
+	if (len == l2.length)
+	{
+
+		while(n != NULL && i<len){
+			if(l1[i]!=n->d){
+				flag=1;
+			}
+			i++;
+			n = n->next;
 		}
-		i++;
-		n = n->next;
+	}
+	else{
+		flag = 1;
 	}
 	return flag;
 }
@@ -431,11 +438,23 @@ bool checkAndCloseTag(tagType *newTag,tagList *mainList){
 
 }
 
+// for now we will manually check name of tag and close it if it a single line tag
+void checkIfSingleTag(tagType* newTag){
+
+	if (listcmp("img",newTag->name,3)==0 || listcmp("link",newTag->name,4)==0
+	|| listcmp("br",newTag->name,2)==0 || listcmp("br/",newTag->name,3)==0 )
+	{
+		newTag->closed = true;
+	}
+
+}
 
 void insertoList(tagType *newTag ,tagList *mainList){
 
 	newTag->id = mainList->length+1;
 	newTag->closed =false;
+
+	checkIfSingleTag(newTag);
 
 	if(mainList->lastTag != NULL){
 
@@ -517,7 +536,7 @@ void printTagToFile(tagType tag,FILE* data){
 		n = n->next;
 
 	}
-	 fprintf(data," %d",tag.id);
+	// fprintf(data," %d",tag.id);
 	
 
 	// fprintf(data, " ");
@@ -566,6 +585,7 @@ void startParse(FILE* fp ,FILE* data){
 			//printTag( " ;",buffer->name," <--Tag\n\n ;" );
 
 		}
+		correctTagList(&mainList);
 
 		printHtmlTree(mainList,data);
 }
@@ -618,4 +638,4 @@ void printHtmlTree(tagList mainList , FILE* data){
 
 
 
-// if same names are given it is unable to from a proper tree
+// if same names are given it is unable to from a proper printHtmlTree
